@@ -7,6 +7,7 @@ const envSchema = z.object({
   AUTH_GOOGLE_SECRET: z.string().min(1),
   OPENAI_API_KEY: z.string().min(1),
   OPENAI_MODEL: z.string().min(1),
+  AUTH_SECRET: z.string().min(32),
 });
 
 const parsed = envSchema.safeParse(process.env);
