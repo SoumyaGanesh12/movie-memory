@@ -105,3 +105,38 @@ describe("getFact cache window", () => {
     expect(result).toMatchObject({ ok: true, source: "generated" });
   });
 });
+
+describe("getFact burst protection", () => {
+  it("generates only once when requests for the same user and movie arrive together", async () => {
+    const user = await createUser({ favoriteMovie: "Inception" });
+    const generator = fakeGenerator("A fun fact.", { delayMs: 200 });
+
+    // Three simultaneous requests, like three open tabs.
+    const results = await Promise.all([
+      getFact(user.id, generator),
+      getFact(user.id, generator),
+      getFact(user.id, generator),
+    ]);
+
+    expect(generator.generate).toHaveBeenCalledOnce();
+    expect(await prisma.fact.count()).toBe(1);
+
+    const sources = results.map((r) => (r.ok ? r.source : r.reason)).sort();
+    expect(sources).toEqual(["cache", "cache", "generated"]);
+
+    const factIds = new Set(results.map((r) => (r.ok ? r.fact.id : null)));
+    expect(factIds.size).toBe(1);
+  });
+
+  it("does not make different users wait on each other's lock", async () => {
+    const userA = await createUser({ favoriteMovie: "Inception" });
+    const userB = await createUser({ favoriteMovie: "Inception" });
+    const generator = fakeGenerator("A fun fact.", { delayMs: 200 });
+
+    const [a, b] = await Promise.all([getFact(userA.id, generator), getFact(userB.id, generator)]);
+
+    expect(a).toMatchObject({ ok: true, source: "generated" });
+    expect(b).toMatchObject({ ok: true, source: "generated" });
+    expect(generator.generate).toHaveBeenCalledTimes(2);
+  });
+});
