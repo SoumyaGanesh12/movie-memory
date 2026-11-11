@@ -1,6 +1,7 @@
 import { redirect } from "next/navigation";
 import { signIn } from "@/auth";
 import { getCurrentUser } from "@/lib/session";
+import { SignInButton } from "@/components/sign-in-button";
 
 export default async function Home() {
   const user = await getCurrentUser();
@@ -22,12 +23,7 @@ export default async function Home() {
           await signIn("google", { redirectTo: "/" });
         }}
       >
-        <button
-          type="submit"
-          className="rounded-lg bg-black px-5 py-2.5 text-white hover:bg-gray-800"
-        >
-          Sign in with Google
-        </button>
+      <SignInButton />
       </form>
     </main>
   );
