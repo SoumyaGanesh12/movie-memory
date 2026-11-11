@@ -26,3 +26,12 @@ export function insertFact(
     select: factSelect,
   });
 }
+
+/** The newest fact for this user and movie, or null. Uses the (userId, movieTitle, createdAt DESC) index. */
+export function getLatestFact(userId: string, movieTitle: string): Promise<StoredFact | null> {
+  return prisma.fact.findFirst({
+    where: { userId, movieTitle },
+    orderBy: { createdAt: "desc" },
+    select: factSelect,
+  });
+}

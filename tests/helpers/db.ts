@@ -15,3 +15,15 @@ export function createUser({ favoriteMovie = null }: { favoriteMovie?: string | 
     },
   });
 }
+
+/** Creates a fact that is `ageMs` milliseconds old. */
+export function createFact(userId: string, movieTitle: string, ageMs: number) {
+  return prisma.fact.create({
+    data: {
+      userId,
+      movieTitle,
+      content: "A stored fact.",
+      createdAt: new Date(Date.now() - ageMs),
+    },
+  });
+}

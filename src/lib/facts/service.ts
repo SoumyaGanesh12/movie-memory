@@ -1,10 +1,13 @@
 import "server-only";
 import { getFavoriteMovie } from "@/lib/users";
 import { openAIFactGenerator, type FactGenerator } from "./generator";
-import { insertFact, type StoredFact } from "./repository";
+import { getLatestFact, insertFact, type StoredFact } from "./repository";
+
+/** A fact younger than this is returned instead of generating a new one. */
+export const CACHE_WINDOW_MS = 60_000;
 
 /** Where the returned fact came from. */
-export type FactSource = "generated";
+export type FactSource = "generated" | "cache";
 
 export type FactResult =
   | { ok: true; fact: StoredFact; source: FactSource }
@@ -12,7 +15,7 @@ export type FactResult =
 
 /**
  * Returns a fun fact about the user's favorite movie.
- * Base policy: generate a new fact on every request and store it.
+ * Policy: reuse the latest fact if it is less than 60 seconds old; otherwise generate and store a new one.
  */
 export async function getFact(
   userId: string,
@@ -21,6 +24,11 @@ export async function getFact(
   const movieTitle = await getFavoriteMovie(userId);
   if (!movieTitle) {
     return { ok: false, reason: "no_movie", message: "Set a favorite movie first." };
+  }
+
+  const latest = await getLatestFact(userId, movieTitle);
+  if (latest && Date.now() - latest.createdAt.getTime() < CACHE_WINDOW_MS) {
+    return { ok: true, fact: latest, source: "cache" };
   }
 
   try {

@@ -6,7 +6,7 @@ type Fact = { content: string; movieTitle: string; createdAt: string };
 
 type FactState =
   | { status: "loading" }
-  | { status: "success"; fact: Fact }
+  | { status: "success"; fact: Fact; fromCache: boolean }
   | { status: "error"; message: string };
 
 async function fetchFact(): Promise<FactState> {
@@ -17,7 +17,7 @@ async function fetchFact(): Promise<FactState> {
     if (!res.ok || !body?.fact) {
       return { status: "error", message: body?.error ?? "Something went wrong. Please try again." };
     }
-    return { status: "success", fact: body.fact };
+      return { status: "success", fact: body.fact, fromCache: body.source === "cache" };
   } catch {
     return { status: "error", message: "Network error. Check your connection and try again." };
   }
@@ -52,6 +52,9 @@ export function FactCard() {
         )}
         {state.status === "error" && <p className="text-red-600">{state.message}</p>}
         {state.status === "success" && <p className="text-gray-900">{state.fact.content}</p>}
+        {state.status === "success" && state.fromCache && (
+          <p className="mt-1 text-xs text-gray-500">New facts are available once a minute.</p>
+        )}
       </div>
 
       <button
