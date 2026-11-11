@@ -8,9 +8,14 @@ export interface FactGenerator {
   generate(movieTitle: string): Promise<string | null>;
 }
 
+/** Maximum time for one OpenAI request before it counts as failed. */
+const OPENAI_TIMEOUT_MS = 10_000;
+
 const client = new OpenAI({
   apiKey: env.OPENAI_API_KEY,
   baseURL: env.OPENAI_BASE_URL, // unset → OpenAI's default API
+  timeout: OPENAI_TIMEOUT_MS,
+  maxRetries: 1,
 });
 
 const SYSTEM_PROMPT = `You are a film trivia expert.

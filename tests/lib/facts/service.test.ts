@@ -140,3 +140,26 @@ describe("getFact burst protection", () => {
     expect(generator.generate).toHaveBeenCalledTimes(2);
   });
 });
+
+describe("getFact failure handling", () => {
+  it("returns the most recent fact, even if old, when generation fails", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const user = await createUser({ favoriteMovie: "Inception" });
+    const old = await createFact(user.id, "Inception", 5 * 60_000); // 5 minutes old
+
+    const result = await getFact(user.id, fakeGenerator(new Error("API down")));
+
+    expect(result).toMatchObject({ ok: true, source: "fallback", fact: { id: old.id } });
+    expect(await prisma.fact.count()).toBe(1);
+  });
+
+  it("does not fall back to a fact about a different movie", async () => {
+    vi.spyOn(console, "error").mockImplementation(() => {});
+    const user = await createUser({ favoriteMovie: "Inception" });
+    await createFact(user.id, "Interstellar", 5 * 60_000);
+
+    const result = await getFact(user.id, fakeGenerator(new Error("API down")));
+
+    expect(result).toMatchObject({ ok: false, reason: "generation_failed" });
+  });
+});

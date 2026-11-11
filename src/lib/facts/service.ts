@@ -7,7 +7,7 @@ import { getLatestFact, insertFact, withFactLock, type StoredFact } from "./repo
 export const CACHE_WINDOW_MS = 60_000;
 
 /** Where the returned fact came from. */
-export type FactSource = "generated" | "cache";
+export type FactSource = "generated" | "cache" | "fallback";
 
 export type FactResult =
   | { ok: true; fact: StoredFact; source: FactSource }
@@ -21,6 +21,7 @@ function isFresh(fact: StoredFact | null): fact is StoredFact {
  * Returns a fun fact about the user's favorite movie.
  * Policy: reuse the latest fact if it is less than 60 seconds old; otherwise generate and store a new one.
  * Concurrent requests for the same user + movie are serialized, so only one of them generates.
+ * If generation fails (timeout or error), returns the most recent stored fact for this movie, if any.
  */
 export async function getFact(
   userId: string,
@@ -59,6 +60,13 @@ export async function getFact(
     });
   } catch (err) {
     console.error("Fact generation failed", err);
+
+    // Fall back to the most recent fact for this movie, however old.
+    const fallback = await getLatestFact(userId, movieTitle).catch(() => null);
+    if (fallback) {
+      return { ok: true, fact: fallback, source: "fallback" };
+    }
+
     return {
       ok: false,
       reason: "generation_failed",

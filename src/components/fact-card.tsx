@@ -6,7 +6,7 @@ type Fact = { content: string; movieTitle: string; createdAt: string };
 
 type FactState =
   | { status: "loading" }
-  | { status: "success"; fact: Fact; fromCache: boolean }
+  | { status: "success"; fact: Fact; source: "generated" | "cache" | "fallback" }
   | { status: "error"; message: string };
 
 async function fetchFact(): Promise<FactState> {
@@ -17,9 +17,9 @@ async function fetchFact(): Promise<FactState> {
     if (!res.ok || !body?.fact) {
       return { status: "error", message: body?.error ?? "Something went wrong. Please try again." };
     }
-      return { status: "success", fact: body.fact, fromCache: body.source === "cache" };
+    return { status: "success", fact: body.fact, source: body.source };
   } catch {
-    return { status: "error", message: "Network error. Check your connection and try again." };
+      return { status: "error", message: "Network error. Check your connection and try again." };
   }
 }
 
@@ -52,8 +52,13 @@ export function FactCard() {
         )}
         {state.status === "error" && <p className="text-red-600">{state.message}</p>}
         {state.status === "success" && <p className="text-gray-900">{state.fact.content}</p>}
-        {state.status === "success" && state.fromCache && (
+                {state.status === "success" && state.source === "cache" && (
           <p className="mt-1 text-xs text-gray-500">New facts are available once a minute.</p>
+        )}
+        {state.status === "success" && state.source === "fallback" && (
+          <p className="mt-1 text-xs text-amber-700">
+            We couldn&apos;t get a new fact right now, so here&apos;s your most recent one.
+          </p>
         )}
       </div>
 
