@@ -2,6 +2,7 @@ import { redirect } from "next/navigation";
 import { requireUser } from "@/lib/session";
 import { SignOutButton } from "@/components/sign-out-button";
 import { UserAvatar } from "@/components/user-avatar";
+import { FactCard } from "@/components/fact-card";
 
 export default async function DashboardPage() {
   const user = await requireUser();
@@ -26,6 +27,10 @@ export default async function DashboardPage() {
         <div className="mt-6 rounded-xl bg-gray-50 p-4">
           <p className="text-sm text-gray-500">Favorite movie</p>
           <p className="mt-1 break-words text-lg font-medium">{user.favoriteMovie}</p>
+        </div>
+
+        <div className="mt-4">
+          <FactCard />
         </div>
 
         <div className="mt-6 flex justify-end">

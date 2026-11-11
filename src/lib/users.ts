@@ -9,3 +9,12 @@ export async function setFavoriteMovie(userId: string, movie: string) {
     select: { id: true, favoriteMovie: true },
   });
 }
+
+/** Returns the user's favorite movie, or null if they haven't set one. */
+export async function getFavoriteMovie(userId: string): Promise<string | null> {
+  const user = await prisma.user.findUnique({
+    where: { id: userId },
+    select: { favoriteMovie: true },
+  });
+  return user?.favoriteMovie ?? null;
+}
