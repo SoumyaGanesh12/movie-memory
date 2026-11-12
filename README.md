@@ -285,7 +285,7 @@ Request B: lock (waits) ──────────────────�
 
 ### 3. Failure Handling
 
-- LLM client: 10s timeout, 1 retry (worst case ~20s, within 30s transaction limit).
+- LLM client: 10s timeout, 1 retry per attempt; any attempt that exceeds the 30s transaction limit also falls back gracefully.
 - On any failure (API error, timeout, malformed output, transaction timeout):
   - Latest fact for current movie exists → return it, `source: "fallback"`, UI shows notice.
   - None → friendly error with retry button.
@@ -326,8 +326,8 @@ npm test
 | Decision | Benefit | Cost |
 |---|---|---|
 | Database as cache (vs. Redis / in-memory) | Single source of truth; multi-instance safe; no extra infra | One indexed query per request; Redis preferable at scale |
-| Advisory lock in transaction | Correct across instances; auto-release | Waiting request holds a DB connection (bounded by timeout) |
-| Waiters retry during outage | Simple logic | Sequential LLM retries while API is down |
+| Advisory lock in transaction | Correct across instances; auto-release | Waiting requests each hold a pooled DB connection; many simultaneous tabs could exhaust the pool (per-user rate limiting would prevent this) |
+| Waiters retry during outage | Simple logic | Sequential LLM retries while the API is down; long waits can hit the 30s transaction limit, which then falls back gracefully |
 | App-server clock for freshness | Simple comparison | Clock skew with remote DB could shift window slightly |
 | Client-side fact loading | Dashboard renders instantly | Brief loading state |
 | No middleware | Single security boundary | Unauthenticated requests reach page code before redirect |
